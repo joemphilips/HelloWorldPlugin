@@ -33,7 +33,7 @@ namespace HelloWorldPlugin.Server
       var rc =
         new RootCommand
         {
-          Name = "greetd",
+          Name = "greeterd",
           Description = "The name of server of which users will see by calling `hello` method"
         };
 

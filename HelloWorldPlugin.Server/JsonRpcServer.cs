@@ -15,7 +15,7 @@ namespace HelloWorldPlugin.Server
   public class JsonRpcServerOptions
   {
     public string GreeterName { get; set; } = "World";
-    public bool IsInitiated { get; set; } = false;
+    public bool IsInitiated { get; set; }
     public static readonly JsonRpcServerOptions Instance =
       new JsonRpcServerOptions();
   }
@@ -51,9 +51,9 @@ namespace HelloWorldPlugin.Server
     {
       var ty =
         op.Argument.ArgumentType;
-      var p =
+      var maybeDefaultValue =
         _optionProps
-          .FirstOrDefault(m => string.Equals(m.Name, op.Name, StringComparison.CurrentCultureIgnoreCase))
+          .FirstOrDefault(m => string.Equals(m.Name, op.Name, StringComparison.OrdinalIgnoreCase))
           ?.GetValue(_options);
       var maybeType =
         ty == typeof(int) ? "int" :
@@ -67,12 +67,13 @@ namespace HelloWorldPlugin.Server
         ty == typeof(bool) ? "string" :
         ty == typeof(bool[]) ? "string" :
         op.Argument.Arity.Equals(ArgumentArity.Zero) ? "flag" :
-        null;
+        throw new InvalidDataException($"argument with type {ty} is not supported");
+      _logger.LogInformation($"opts: Name: {op.Name}. Desc: {op.Description}. type: {maybeType}");
       return new PluginOptionsDTO
       {
         Name = op.Name,
-        Default = p,
-        Description = op.Description,
+        Default = maybeDefaultValue,
+        Description = op.Description ?? throw new Exception($"You must pass description for option {op.Name}"),
         OptType = maybeType,
         Multi = op.Argument.Arity.Equals(ArgumentArity.OneOrMore) || op.Argument.Arity.Equals(ArgumentArity.ZeroOrMore),
         Deprecated = false
@@ -80,7 +81,7 @@ namespace HelloWorldPlugin.Server
     }
 
     [JsonRpcMethod("hello")]
-    public async Task<string> Hello(string name)
+    public async Task<string> HelloAsync(string name)
     {
       using var releaser = await _semaphore.EnterAsync();
       _logger.LogInformation("greeting: {Name} ... ", name);
@@ -89,7 +90,7 @@ namespace HelloWorldPlugin.Server
 
 
     [JsonRpcMethod("init")]
-    public async Task Init(LnInitConfigurationDTO configuration, Dictionary<string, object> options)
+    public async Task InitAsync(LnInitConfigurationDTO configuration, Dictionary<string, object> options)
     {
       using var releaser = await _semaphore.EnterAsync();
       foreach (var op in options)
@@ -103,19 +104,18 @@ namespace HelloWorldPlugin.Server
     }
 
     [JsonRpcMethod("getmanifest")]
-    public async Task<ManifestDto> GetManifest(bool allow_deprecated_apis = false, object otherParams = null)
+    public async Task<ManifestDto> GetManifestAsync(bool allowDeprecatedApis = false, object? otherParams = null)
     {
       using var releaser = await _semaphore.EnterAsync();
       var userDefinedMethodInfo =
         this
           .GetType()
           .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
-          .Where(m => !m.IsSpecialName && !String.Equals(m.Name, "init", StringComparison.OrdinalIgnoreCase) && !String.Equals(m.Name, "getmanifest", StringComparison.OrdinalIgnoreCase));
+          .Where(m => !m.IsSpecialName && !String.Equals(m.Name, "initasync", StringComparison.OrdinalIgnoreCase) && !String.Equals(m.Name, "getmanifestasync", StringComparison.OrdinalIgnoreCase));
       var methods =
         userDefinedMethodInfo
           .Select(m =>
           {
-            var name = m.Name.ToLowerInvariant();
             var argSpec = m.GetParameters();
             var numDefaults =
               argSpec.Count(s => s.HasDefaultValue);
@@ -126,12 +126,15 @@ namespace HelloWorldPlugin.Server
                 !string.Equals(s.Name, "request", StringComparison.OrdinalIgnoreCase))
                 .Select((s, i) => i < keywordArgsStartIndex ? s.Name : $"[{s.Name}]");
 
+            var name = m.Name.ToLowerInvariant();
+            if (name.EndsWith("async"))
+              name = name[..^5];
             return new RPCMethodDTO
             {
               Name = name,
               Usage = string.Join(' ', args),
               Description = _rpcDescriptions[name].Item1,
-              LongDescription = _rpcDescriptions[name].Item1
+              LongDescription = _rpcDescriptions[name].Item2
             };
           });
 

@@ -13,26 +13,33 @@ namespace HelloWorldPlugin.Server
 
   public class NotificationsDTO
   {
+    [Newtonsoft.Json.JsonProperty("method")]
     public string Method { get; set; }
   }
 
   public class FeatureSetDTO
   {
+    [Newtonsoft.Json.JsonProperty("init")]
     public string? Init { get; set; }
+    [Newtonsoft.Json.JsonProperty("node")]
     public string? Node { get; set; }
+    [Newtonsoft.Json.JsonProperty("channel")]
     public string? Channel { get; set; }
+    [Newtonsoft.Json.JsonProperty("invoice")]
     public string? Invoice { get; set; }
   }
 
   public class PluginOptionsDTO
   {
+    [Newtonsoft.Json.JsonProperty("name")]
     public string Name { get; set; }
+    [Newtonsoft.Json.JsonProperty("default")]
     public object? Default { get; set; }
     [Newtonsoft.Json.JsonProperty("description")]
-    public string? Description { get; set; }
+    public string Description { get; set; }
 
     [Newtonsoft.Json.JsonProperty("type")]
-    public string? OptType { get; set; }
+    public string OptType { get; set; }
 
     [Newtonsoft.Json.JsonProperty("multi")]
     public bool Multi { get; set; }

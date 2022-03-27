@@ -4,8 +4,8 @@ services:
   bitcoind:
     restart: unless-stopped
     build:
-      context: ./Dockerfiles
-      dockerfile: bitcoin
+      context: .
+      dockerfile: Dockerfile.bitcoin
       args:
         VERSION: "22.0"
     environment:
@@ -44,11 +44,10 @@ services:
     volumes:
       - "./data/bitcoin:/data"
 
-  clightning_user:
+  lightningd:
     restart: unless-stopped
     build:
       context: .
-      dockerfile: s/Dockerfiles/lightning
       args:
         LIGHTNINGD_VERSION: "v0.10.1"
     environment:
@@ -56,7 +55,7 @@ services:
       LIGHTNINGD_NETWORK: regtest
       LIGHTNINGD_CHAIN: btc
       LIGHTNINGD_PORT: 9735
-      LIGHTNINGD_ANNOUNCEADDR: clightning_user
+      LIGHTNINGD_ANNOUNCEADDR: lightningd
       LIGHTNINGD_DATA: /root/.lightning
     command:
       - "--network=regtest"
@@ -73,10 +72,10 @@ services:
     depends_on:
       - bitcoind
     volumes:
-      - "clightning_user:/root/.lightning"
+      - "lightningd:/root/.lightning"
       - "./data/bitcoin:/deps/.bitcoin"
     expose:
       - "9735"
 
 volumes:
-  clightning_user:
+  lightningd:
