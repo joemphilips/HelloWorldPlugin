@@ -1,5 +1,7 @@
 # Example c-lightning plugin for .NET
 
+Please check [my blogpost](https://dev.to/joemphilips/building-c-lightning-plugin-with-net-3162) for what this repo is about.
+
 ### How to
 
 With dotnet sdk 6.x installed on your computer, run
